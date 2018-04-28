@@ -1,105 +1,60 @@
 const fp = require('fastify-plugin')
-const acceptLanguageParser = require('accept-language-parser')
 
 const defaultOptions = {
   cookieDecorator: 'cookies',
   cookieKey: 'fastifyLanguageParser',
   order: [],
+  headerDecorator: 'headers',
+  headerKey: 'accept-language',
   fallbackLng: 'en',
-  pathParam: 'lng',
-  queryString: 'lng',
+  pathDecorator: 'params',
+  pathKey: 'lng',
+  queryDecorator: 'query',
+  queryKey: 'lng',
   sessionDecorator: 'session',
   sessionKey: 'fastifyLanguageParser',
-  supportedLngs: ['en']
+  supportedLngs: []
 }
+
+const supportedParsers = ['cookie', 'header', 'path', 'query', 'session']
 
 const fastifyLP = (fastify, opts, next) => {
   const options = Object.assign({}, defaultOptions, opts)
 
   fastify.decorateRequest('detectedLng', options.fallbackLng)
 
-  options.order.map(name => {
-    if (name !== 'session' && typeof detectors[name] !== 'function') {
-      return next(new Error(`${name} is not a valid language detector`))
+  const parsers = options.order
+
+  parsers.map(name => {
+    console.log(`#parser is ${name}`)
+    const parserOptions = Object.assign({}, {
+      decorator: options[`${name}Decorator`],
+      key: options[`${name}Key`],
+      supportedLngs: options.supportedLngs
+    })
+
+    if (supportedParsers.indexOf(name) === -1) {
+      return next(new Error(`${name} is not a valid language parser`))
     }
 
-    if (name === 'session') {
+    if (options.order.indexOf(name) !== options.order.lastIndexOf(name)) {
+      return next(new Error(`${name} parser found  multiple times in order option. Try scope your routes instead.`))
+    }
+
+    if (name === 'header') {
       fastify.addHook(
         'preHandler',
-        detectors['cookie'](Object.assign({}, options, { session: true }))
+        require('./lib/header-parser')(parserOptions)
       )
     } else {
-      fastify.addHook('preHandler', detectors[name](options))
+      fastify.addHook(
+        'preHandler',
+        require('./lib/common-parser')(parserOptions)
+      )
     }
   })
 
   next()
-}
-
-const detectors = {
-  cookie: function (opts) {
-    const { supportedLngs } = opts
-    let decorator = opts.cookieDecorator
-    let key = opts.cookieKey
-
-    if (opts.session) {
-      decorator = opts.sessionDecorator
-      key = opts.sessionKey
-    }
-
-    return function (req, res, next) {
-      if (req[decorator] && req[decorator][key]) {
-        const found = req[decorator][key]
-        if (supportedLngs.length === 0 || supportedLngs.indexOf(found) > -1) {
-          req.detectedLng = found
-        }
-      }
-      next()
-    }
-  },
-  header: function (opts) {
-    const { supportedLngs } = opts
-    return function (req, res, next) {
-      if (req.headers && req.headers['accept-language']) {
-        const header = req.headers['accept-language']
-        if (supportedLngs.length === 0) {
-          req.detectedLng = acceptLanguageParser.parse(header)
-        } else {
-          const found = acceptLanguageParser.pick(supportedLngs, header)
-          if (found) {
-            req.detectedLng = found
-          }
-        }
-      }
-      next()
-    }
-  },
-  path: function (opts) {
-    const { pathParam, supportedLngs } = opts
-
-    return function (req, res, next) {
-      if (req.params && req.params[pathParam]) {
-        const found = req.params[pathParam]
-        if (supportedLngs.length === 0 || supportedLngs.indexOf(found) > -1) {
-          req.detectedLng = found
-        }
-      }
-      next()
-    }
-  },
-  query: function (opts) {
-    const { queryString, supportedLngs } = opts
-
-    return function (req, res, next) {
-      if (req.query && req.query[queryString]) {
-        const found = req.query[queryString]
-        if (supportedLngs.length === 0 || supportedLngs.indexOf(found) > -1) {
-          req.detectedLng = found
-        }
-      }
-      next()
-    }
-  }
 }
 
 module.exports = fp(fastifyLP, {

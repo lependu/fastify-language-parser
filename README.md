@@ -7,8 +7,7 @@
 
 Language parser plugin for [fastify](https://github.com/fastify/fastify)
 
-It decorates `req` object with `detectedLng` property and adds `preHandler` hook for language parsers specified in `order` option.
-Supports `cookie`, `header`, `query`, `path` and `session` parser.
+It decorates `req` object with `detectedLng` and adds `preHandler` hook for those language parsers which you specified in `order` option. Supports `cookie`, `header`, `query`, `path` and `session` parser.
 
 
 ## Install
@@ -33,21 +32,7 @@ fastify
   })
 ```
 
-
-## Lifecycle
-```
-req.detectedLng = result of previous parser || options.fallbackLng
-        │
-        └─▶ checks for value
-                │
- does nothing ◀─┴─▶  if options.supportedLngs has any item
-                       │
-sets req.detectedLng ◀─┴─▶ looks for matches in supportedLngs
-                               │
-                does nothing ◀─┴─▶ sets req.detectedLng
-                                        │
-                                        └─▶ next parser defined in options.order
-```
+If you need different set of prasers for different routes, [scope](https://www.fastify.io/docs/latest/Plugins-Guide/) the routes and register this plugin in each scope where it needed.
 
 
 ## API
@@ -56,31 +41,31 @@ sets req.detectedLng ◀─┴─▶ looks for matches in supportedLngs
 
 name | type | default | description
 -----|------|---------|------------
-**`fallbackLng`** | `{String}` | `'en'` | The default value of `detectedLng` property.
-**`order`** | `{Array}` | `[]` | List of parsers. Order is important, the last wins. Supported values are: `cookie` `header` `path` `query` `session`.
-**`supportedLngs`** | `{Array}` | `['en']` | Use this option to filter the language code found by parser. If it is an empty array parser will set what it found. The order of items only counts when you use `header` parser.
+**`fallbackLng`** | `{String}` | `'en'` | The default value of the `req.detectedLng` decorator.
+**`order`** | `{Array}` | `[]` | Order and from where language should be detected. Supported values are: `cookie` `header` `path` `query` `session`.
+**`supportedLngs`** | `{Array}` | `['en']` | Use this option to filter the parsed language code. If it is an empty array parsers will skip the filter step. The order of items only counts when you use `header` parser.
 
-### Parser specific options
+### Parser specific options and notes
 #### header parser
-Under the hood it uses [accept-language-parser](https://github.com/opentable/accept-language-parser). If `supportedLngs` does not contain any item it uses the [parse](https://github.com/opentable/accept-language-parser#parserparseacceptlanguageheader), otherwise the  [pick](https://github.com/opentable/accept-language-parser) method. Latter is the only case when the order in `supportedLngs` array makes any difference, because parser will pass that arrray to the pick method. No other plugin option is required.
+Under the hood it uses [accept-language-parser](https://github.com/opentable/accept-language-parser). If `supportedLngs` does not contain any item it uses the [parse](https://github.com/opentable/accept-language-parser#parserparseacceptlanguageheader), otherwise the [pick](https://github.com/opentable/accept-language-parser) method. Latter is the only case when the order in `supportedLngs` array makes any difference, because parser will pass it to the pick method. If the pick method returns no value than the `detectedLng` decorator will not change. It parses `req.headers['accept-language']` value which provided by fastify and normally you don't need to change, but you can using the `headerDecorator` and `headerKey` options.
 
 #### query & path parsers
+Parses specified keys from `req.query` and `req.params` decorators which provided by fastify, so you don't need to change them, but you can using the `pathDecorator` and `queryDecorator` options.
 
 name | type | default | description
 -----|------|---------|------------
-**`pathParam`** | `{String}` | `'lng'` | The path parser looks for this property in `req.params` object.
-**`queryString`** | `{String}` | `'lng'` | The query parser looks for this property in `req.query` object.
+**`pathParam`** | `{String}` | `'lng'` | Parses the value of<br /> `req.params[pathParam]`.
+**`queryString`** | `{String}` | `'lng'` | Parses the value of<br /> `req.query[queryString]`.
 
 #### cookie & session parsers
-This plugin does not set any cookie or session but looks for the keys specified in options. If you intend to use these parsers you need to register [fastify-cookie](https://github.com/fastify/fastify-cookie) or [fastify-session](https://github.com/SerayaEryn/fastify-session) plugin respectively.
+If you intend to use these parsers you need to register [fastify-cookie](https://github.com/fastify/fastify-cookie) or [fastify-session](https://github.com/SerayaEryn/fastify-session) plugin respectively. This plugin does not retrieves or set any cookie or session value but looks for the `req[decorator][key]` value specified in options. The fastify-cookie plugin provides `req.cookies` decorator by defult. If you use fastify-session plugin you need to set the `req[sessionDecorator][sessionKey]` before this plugin which reflects your session store state changes and provides the language code value.
 
 name | type | default | description
 -----|------|---------|------------
-**`cookieDecorator`** | `{String}` | `'cookies'` | cookie decorator in `req` object.
-**`cookieKey`** | `{String}` | `'fastifyLanguageParser'` | property to look for in `req[cookieDecorator]` object.
-**`sessionDecorator`** | `{String}` | `'sessions'` | session decorator in `req` object.
-**`sessionKey`** | `{String}` | `'fastifyLanguageParser'` | property to look for in `req[sessionDecorator]` object.
+**`cookieDecorator`** | `{String}` | `'cookies'` |  Looks for the key in<br /> `req[cookieDecorator]`.
+**`cookieKey`** | `{String}` | `'fastifyLanguageParser'` | Parses the value of<br /> `req[cookieDecorator][cookieKey]`.
+**`sessionDecorator`** | `{String}` | `'sessions'` | Looks for the key in<br /> `req[sessionDecorator]`.
+**`sessionKey`** | `{String}` | `'fastifyLanguageParser'` | Parses the value of<br /> `req[sessionDecorator][sessionKey]`.
 
 ## License
 Licensed under [MIT](./LICENSE).
-
