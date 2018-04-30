@@ -26,7 +26,6 @@ const fastifyLP = (fastify, opts, next) => {
   const parsers = options.order
 
   parsers.map(name => {
-    console.log(`#parser is ${name}`)
     const parserOptions = Object.assign({}, {
       decorator: options[`${name}Decorator`],
       key: options[`${name}Key`],
