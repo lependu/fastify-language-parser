@@ -32,7 +32,7 @@ fastify
   })
 ```
 
-If you need different set of prasers for different routes, [scope](https://www.fastify.io/docs/latest/Plugins-Guide/) the routes and register this plugin in each scope where it needed.
+If you need different set of parsers for different routes, [scope](https://www.fastify.io/docs/latest/Plugins-Guide/) the routes and register this plugin in each scope where it needed.
 
 
 ## API
@@ -58,7 +58,7 @@ name | type | default | description
 **`queryString`** | `{String}` | `'lng'` | Parses the value of<br /> `req.query[queryString]`.
 
 #### cookie & session parsers
-If you intend to use these parsers you need to register [fastify-cookie](https://github.com/fastify/fastify-cookie) or [fastify-session](https://github.com/SerayaEryn/fastify-session) plugin respectively. This plugin does not retrieves or set any cookie or session value but looks for the `req[decorator][key]` value specified in options. The fastify-cookie plugin provides `req.cookies` decorator by defult. If you use fastify-session plugin you need to set the `req[sessionDecorator][sessionKey]` before this plugin which reflects your session store state changes and provides the language code value.
+If you intend to use these parsers you need to register [fastify-cookie](https://github.com/fastify/fastify-cookie) or [fastify-session](https://github.com/SerayaEryn/fastify-session) plugin respectively. This plugin does not retrieves or sets any cookie or session value but looks for the `req[decorator][key]` value specified in options. The fastify-cookie plugin provides `req.cookies` decorator by defult. If you use fastify-session plugin you need to set the `req[sessionDecorator][sessionKey]` before this plugin, which reflects your session store state changes and provides the language code value.
 
 name | type | default | description
 -----|------|---------|------------
