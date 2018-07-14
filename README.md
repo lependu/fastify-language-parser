@@ -21,7 +21,7 @@ $ npm i --save fastify-language-parser
 
 ## Example
 ```js
-const fastify = require('fastify')
+const fastify = require('fastify')()
 const LP = require('fastify-language-parser')
 
 fastify
