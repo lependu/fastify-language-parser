@@ -25,6 +25,10 @@ const fastifyLP = (fastify, opts, next) => {
 
   const parsers = options.order
 
+  if (!Array.isArray(parsers)) {
+    return next(new Error(`options.order has to be an array`))
+  }
+
   parsers.map(name => {
     const parserOptions = Object.assign({}, {
       decorator: options[`${name}Decorator`],

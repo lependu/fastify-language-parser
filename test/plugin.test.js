@@ -20,6 +20,20 @@ test('decorates request with detectedLng', t => {
   fastify.close()
 })
 
+test('throws if order option is not an array', t => {
+  t.plan(1)
+  const fastify = Fastify()
+
+  fastify
+    .register(plugin, { order: 'not-array' })
+    .after(err => {
+      t.equal(err.message, 'options.order has to be an array',
+        'error message matches'
+      )
+    })
+  fastify.close()
+})
+
 test('throws if order option contains invalid parser', t => {
   t.plan(1)
   const fastify = Fastify()
