@@ -25,7 +25,7 @@ const fastify = require('fastify')()
 const LP = require('fastify-language-parser')
 
 fastify
-  .reqister(LP, { order: ['query'])
+  .reqister(LP, { order: ['query'] })
   .after(err => {
     if (err) throw err
     fastify.get('/', (req, reply) => {
