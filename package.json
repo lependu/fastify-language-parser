@@ -8,8 +8,8 @@
   },
   "scripts": {
     "lint": "standard --fix",
-    "test": " standard --fix && tap test/**/*.test.js --cov --no-browser",
-    "coverage": "standard --fix && tap test/**/*.test.js --cov --no-browser --coverage-report html"
+    "test": " standard --fix && tap test.js --cov --no-browser",
+    "coverage": "standard --fix && tap test.js --cov --no-browser --coverage-report html"
   },
   "repository": {
     "type": "git",
