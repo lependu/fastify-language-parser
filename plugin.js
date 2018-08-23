@@ -1,3 +1,5 @@
+'use strict'
+
 const fp = require('fastify-plugin')
 
 const defaultOptions = {
@@ -44,17 +46,10 @@ const fastifyLP = (fastify, opts, next) => {
       return next(new Error(`${name} parser found  multiple times in order option. Try scope your routes instead.`))
     }
 
-    if (name === 'header') {
-      fastify.addHook(
-        'preHandler',
-        require('./lib/header-parser')(parserOptions)
-      )
-    } else {
-      fastify.addHook(
-        'preHandler',
-        require('./lib/common-parser')(parserOptions)
-      )
-    }
+    fastify.addHook(
+      'preHandler',
+      require('./parsers')(name, parserOptions)
+    )
   })
 
   next()

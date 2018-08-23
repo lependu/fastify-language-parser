@@ -2,9 +2,8 @@
 
 const { test } = require('tap')
 const Fastify = require('fastify')
-const plugin = require('../plugin')
-const commonParser = require('../lib/common-parser')
-const headerParser = require('../lib/header-parser')
+const plugin = require('./plugin')
+const parserFactory = require('./parsers')
 
 test('Decorates request with detectedLng', t => {
   t.plan(2)
@@ -40,35 +39,35 @@ test('Register errors', t => {
 test('Common parser', t => {
   t.plan(5)
 
-  testParser(t, commonParser({
+  testParser(t, parserFactory('query', {
     decorator: 'foo', key: 'bar', supportedLngs: ['alpha', 'beta'] }),
   { detectedLng: 'alpha', foo: { bar: 'beta' } },
   'with check | check is true | with key',
   'beta',
   'sets req.detectedLng')
 
-  testParser(t, commonParser({
+  testParser(t, parserFactory('path', {
     decorator: 'foo', key: 'bar', supportedLngs: ['alpha', 'beta'] }),
   { detectedLng: 'alpha' },
   'with check | check is true | without key',
   'alpha',
   'does not set req.detectedLng')
 
-  testParser(t, commonParser({
+  testParser(t, parserFactory('session', {
     decorator: 'foo', key: 'bar', supportedLngs: ['alpha', 'beta'] }),
   { detectedLng: 'alpha', foo: { bar: 'gamma' } },
   'with check | check is false | with key',
   'alpha',
   'does not set req.detectedLng')
 
-  testParser(t, commonParser({
+  testParser(t, parserFactory('cookie', {
     decorator: 'foo', key: 'bar', supportedLngs: [] }),
   { detectedLng: 'alpha', foo: { bar: 'beta' } },
   'without check | with key',
   'beta',
   'sets req.detectedLng')
 
-  testParser(t, commonParser({
+  testParser(t, parserFactory('query', {
     decorator: 'foo', key: 'bar', supportedLngs: [] }),
   { detectedLng: 'alpha' },
   'without check | without key',
@@ -79,7 +78,7 @@ test('Common parser', t => {
 test('Header parser', t => {
   t.plan(5)
 
-  testParser(t, headerParser({
+  testParser(t, parserFactory('header', {
     decorator: 'headers', key: 'accept-language', supportedLngs: ['hu', 'en']
   }),
   { detectedLng: 'en',
@@ -88,7 +87,7 @@ test('Header parser', t => {
   'hu',
   'picks the first matching item from supportedLngs')
 
-  testParser(t, headerParser({
+  testParser(t, parserFactory('header', {
     decorator: 'headers', key: 'accept-language', supportedLngs: ['hu', 'en']
   }),
   { detectedLng: 'en',
@@ -97,7 +96,7 @@ test('Header parser', t => {
   'en',
   'does not set req.detectedLng')
 
-  testParser(t, headerParser({
+  testParser(t, parserFactory('header', {
     decorator: 'headers', key: 'accept-language', supportedLngs: ['hu', 'de']
   }),
   { detectedLng: 'en' },
@@ -105,7 +104,7 @@ test('Header parser', t => {
   'en',
   'does not set req.detectedLngs')
 
-  testParser(t, headerParser({
+  testParser(t, parserFactory('header', {
     decorator: 'headers', key: 'accept-language', supportedLngs: []
   }),
   { detectedLng: 'en' },
@@ -115,7 +114,7 @@ test('Header parser', t => {
 
   t.test('without check | with header', t => {
     t.plan(1)
-    const handler = headerParser({
+    const handler = parserFactory('header', {
       decorator: 'headers', key: 'accept-language', supportedLngs: [] })
     let req = { detectedLng: 'en',
       headers: { 'accept-language': 'en-GB;q=0.9,hu;q=0.7' } }
