@@ -45,7 +45,7 @@ If you need different set of parsers for different routes, [scope](https://www.f
 name | type | default | description
 -----|------|---------|------------
 **`fallbackLng`** | `{String}` | `'en'` | The default value of the `req.detectedLng` decorator.
-**`order`** | `{Array}` | `[]` | Order and from where language should be detected. Supported values are: `cookie` `header` `path` `query` `session`.
+**`order`** | `{Array}` | `[]` | Order and from where language should be detected. The last item wins. Supported values are: `cookie` `header` `path` `query` `session`.
 **`supportedLngs`** | `{Array}` | `['en']` | Use this option to filter the parsed language code. If it is an empty array parsers will skip the filter step. The order of items only counts when you use `header` parser.
 
 ### Parser specific options and notes

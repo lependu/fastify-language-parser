@@ -3,29 +3,50 @@
 const { test } = require('tap')
 const Fastify = require('fastify')
 const plugin = require('./plugin')
-const parserFactory = require('./parsers')
+const { defaultOptions } = require('./default-options')
+
+const PARSER_SUBTEST_COUNT = 4 * 5
 
 test('Decorates request with detectedLng', t => {
   t.plan(2)
   const fastify = Fastify()
 
   fastify
-    .register(plugin, { fallbackLng: 'hu' })
+    .register(plugin, { order: ['query'] })
     .ready(err => {
       t.error(err)
-      t.equal(fastify._Request.prototype.detectedLng, 'hu',
-        'default value is fallbackLng'
+      t.equal(fastify._Request.prototype.detectedLng, 'en',
+        'value is the default fallbackLng value (en)'
+      )
+    })
+  fastify.close()
+})
+
+test('With custom fallbackLng option', t => {
+  t.plan(2)
+  const fastify = Fastify()
+
+  fastify
+    .register(plugin, { fallbackLng: 'de', order: ['query'] })
+    .ready(err => {
+      t.error(err)
+      t.equal(fastify._Request.prototype.detectedLng, 'de',
+        'Sets the custom fallbackLng value (de)'
       )
     })
   fastify.close()
 })
 
 test('Register errors', t => {
-  t.plan(6)
+  t.plan(8)
 
   testRegisterError(t, { order: 'not-array' },
     'options.order has to be an array',
     'throws if order option is not an array')
+
+  testRegisterError(t, { order: [] },
+    'options.order has to contain at least one parser.',
+    'throws if order option is an empty array')
 
   testRegisterError(t, { order: ['not-exists'] },
     'not-exists is not a valid language parser',
@@ -36,175 +57,150 @@ test('Register errors', t => {
     'throws if order option contains the same parser multiple times')
 })
 
-test('Common parser', t => {
-  t.plan(5)
+test('Parser', t => {
+  t.plan(7)
 
-  testParser(t, parserFactory('query', {
-    decorator: 'foo', key: 'bar', supportedLngs: ['alpha', 'beta'] }),
-  { detectedLng: 'alpha', foo: { bar: 'beta' } },
-  'with check | check is true | with key',
-  'beta',
-  'sets req.detectedLng')
+  t.test('Default options | no supported check | no param', t => {
+    t.plan(PARSER_SUBTEST_COUNT)
 
-  testParser(t, parserFactory('path', {
-    decorator: 'foo', key: 'bar', supportedLngs: ['alpha', 'beta'] }),
-  { detectedLng: 'alpha' },
-  'with check | check is true | without key',
-  'alpha',
-  'does not set req.detectedLng')
+    testParser(t, 'query', { order: ['query'] }, null, '/', '/', {}, 'en',
+      'query | returns default fallbackLng (en)')
 
-  testParser(t, parserFactory('session', {
-    decorator: 'foo', key: 'bar', supportedLngs: ['alpha', 'beta'] }),
-  { detectedLng: 'alpha', foo: { bar: 'gamma' } },
-  'with check | check is false | with key',
-  'alpha',
-  'does not set req.detectedLng')
+    testParser(t, 'path', { order: ['path'] }, null, '/prefix/:lng', '/prefix/',
+      {}, 'en', 'path | returns default fallbackLng (en)')
 
-  testParser(t, parserFactory('cookie', {
-    decorator: 'foo', key: 'bar', supportedLngs: [] }),
-  { detectedLng: 'alpha', foo: { bar: 'beta' } },
-  'without check | with key',
-  'beta',
-  'sets req.detectedLng')
+    testParser(t, 'cookie', { order: ['cookie'] }, null, '/', '/', {}, 'en',
+      'cookie | returns default fallbackLng (en)')
 
-  testParser(t, parserFactory('query', {
-    decorator: 'foo', key: 'bar', supportedLngs: [] }),
-  { detectedLng: 'alpha' },
-  'without check | without key',
-  'alpha',
-  'does not set req.detectedLng')
-})
+    testParser(t, 'session', { order: ['session'] }, null, '/', '/', {}, 'en',
+      'session | returns default fallbackLng (en)')
 
-test('Header parser', t => {
-  t.plan(5)
-
-  testParser(t, parserFactory('header', {
-    decorator: 'headers', key: 'accept-language', supportedLngs: ['hu', 'en']
-  }),
-  { detectedLng: 'en',
-    headers: { 'accept-language': 'en-GB;q=0.9,hu;q=0.7' } },
-  'with check | with header | with matches',
-  'hu',
-  'picks the first matching item from supportedLngs')
-
-  testParser(t, parserFactory('header', {
-    decorator: 'headers', key: 'accept-language', supportedLngs: ['hu', 'en']
-  }),
-  { detectedLng: 'en',
-    headers: { 'accept-language': 'de;q=0.9,fr;q=0.8' } },
-  'with check | with header | without matches',
-  'en',
-  'does not set req.detectedLng')
-
-  testParser(t, parserFactory('header', {
-    decorator: 'headers', key: 'accept-language', supportedLngs: ['hu', 'de']
-  }),
-  { detectedLng: 'en' },
-  'with check | without header',
-  'en',
-  'does not set req.detectedLngs')
-
-  testParser(t, parserFactory('header', {
-    decorator: 'headers', key: 'accept-language', supportedLngs: []
-  }),
-  { detectedLng: 'en' },
-  'without check | without header',
-  'en',
-  'does not set req.detectedLngs')
-
-  t.test('without check | with header', t => {
-    t.plan(1)
-    const handler = parserFactory('header', {
-      decorator: 'headers', key: 'accept-language', supportedLngs: [] })
-    let req = { detectedLng: 'en',
-      headers: { 'accept-language': 'en-GB;q=0.9,hu;q=0.7' } }
-    const expected = [ { code: 'en', region: 'GB', quality: 0.9, script: null },
-      { code: 'hu', region: null, quality: 0.7, script: null }]
-    handler(req, {}, function () {
-      t.deepEqual(req.detectedLng, expected,
-        'parses array of language objects found in header'
-      )
-    })
+    testParser(t, 'header', { order: ['header'] }, null, '/', '/', {}, 'en',
+      'header | returns default fallbackLng (en)')
   })
-})
 
-test('Integration', t => {
-  t.plan(19)
-  const fastify = Fastify()
-  t.tearDown(() => fastify.close.bind(fastify))
+  t.test('Default options | no supported check | with param', t => {
+    t.plan(PARSER_SUBTEST_COUNT)
 
-  fastify
-    .register((scope1, opts, next) => {
-      scope1
-        .register(plugin, {
-          order: ['header', 'query'],
-          supportedLngs: ['de', 'en']
-        })
-        .get('/scope1', (req, res) => {
-          res.send({ lng: req.detectedLng })
-        })
-        .after(err => {
-          t.error(err)
-          t.equal(scope1._hooks.preHandler.length, 2, 'adds preHandler hooks')
-          t.equal(scope1._Request.prototype.detectedLng, 'en',
-            'scope1 decorates req with detectedLng and sets default value'
-          )
-        })
-      next()
-    })
-    .register((scope2, opts, next) => {
-      scope2
-        .decorateRequest('cookies', { fastifyLanguageParser: 'de' })
-        .decorateRequest('session', { fastifyLanguageParser: 'fr' })
-        .register(plugin, {
-          order: ['cookie', 'session', 'path'],
-          fallbackLng: 'hu'
-        })
-        .get('/scope2/wo-path-param', (req, res) => {
-          res.send({ lng: req.detectedLng })
-        })
-        .get('/scope2/:lng/with-path-param', (req, res) => {
-          res.send({ lng: req.detectedLng })
-        })
-        .after(err => {
-          t.error(err)
-          t.equal(scope2._hooks.preHandler.length, 3,
-            'scope2 adds preHandler hooks'
-          )
-          t.equal(scope2._Request.prototype.detectedLng, 'hu',
-            'scope2 decorates req with detectedLng and sets default value'
-          )
-        })
-      next()
-    })
-    .ready(err => {
-      t.error(err)
-      t.equal(fastify._hooks.preHandler.length, 0,
-        'Out of scope does not add preHandler hook'
-      )
-      t.equal(typeof fastify._Request.prototype.detectedLng, 'undefined',
-        'Out of scope does not decorates req with detectedLng property'
-      )
-      testRoute(t, fastify, '/scope1', {}, 'en',
-        'GET /scope1 wo header and query returns defaultLng'
-      )
-      testRoute(t, fastify, '/scope1',
-        { 'accept-language': 'hu;q=0.9,de;q=0.8' },
-        'de',
-        'GET /scope1 with header only picks from header'
-      )
-      testRoute(t, fastify, '/scope1?lng=de',
-        { 'accept-language': 'en;q=0.8' },
-        'de',
-        'GET /scope1 with query and header returns query value'
-      )
-      testRoute(t, fastify, '/scope2/wo-path-param', {}, 'fr',
-        'GET /scope2/wo-path-param returns session value'
-      )
-      testRoute(t, fastify, '/scope2/fr/with-path-param', {}, 'fr',
-        'GET /scope2/fr/with-path-param returns value found in path param'
-      )
-    })
+    testParser(t, 'query', { order: ['query'] }, null, '/', '/?lng=de', {},
+      'de', 'query | returns param (de)')
+
+    testParser(t, 'path', { order: ['path'] }, null, '/prefix/:lng',
+      '/prefix/de', {}, 'de', 'path | returns param (de)')
+
+    testParser(t, 'cookie', { order: ['cookie'] }, 'de', '/', '/', {}, 'de',
+      'cookie | returns param (de)')
+
+    testParser(t, 'session', { order: ['session'] }, 'de', '/', '/', {}, 'de',
+      'session | returns param (de)')
+
+    testParser(t, 'header', { order: ['header'] }, null, '/', '/',
+      { 'accept-language': 'de;q=0.9,fr;q=0.8' },
+      JSON.stringify([{'code': 'de', 'script': null, 'quality': 0.9}, {'code': 'fr', 'script': null, 'quality': 0.8}]),
+      'header | returns array of matched items sorted by q')
+  })
+
+  t.test('Default options | supported check | param supported', t => {
+    t.plan(PARSER_SUBTEST_COUNT)
+
+    testParser(t, 'query', { order: ['query'], supportedLngs: ['en', 'de'] },
+      null, '/', '/?lng=de', {}, 'de', 'query | returns param (de)')
+
+    testParser(t, 'path', { order: ['path'], supportedLngs: ['en', 'de'] },
+      null, '/prefix/:lng', '/prefix/de', {}, 'de', 'path | returns param (de)')
+
+    testParser(t, 'cookie', { order: ['cookie'], supportedLngs: ['en', 'de'] },
+      'de', '/', '/', {}, 'de', 'cookie | returns param (de)')
+
+    testParser(t, 'session',
+      { order: ['session'], supportedLngs: ['en', 'de'] }, 'de', '/', '/', {},
+      'de', 'session | returns param (de)')
+
+    testParser(t, 'header', { order: ['header'], supportedLngs: ['de', 'en'] },
+      null, '/', '/', { 'accept-language': 'fr;q=0.9,en;q=0.8,de;q=0.7' },
+      'en', 'header | returns the first matched item from supportedLngs (de)')
+  })
+
+  t.test('Default options | supported check | param not supported', t => {
+    t.plan(PARSER_SUBTEST_COUNT)
+
+    testParser(t, 'query', { order: ['query'], supportedLngs: ['en', 'de'] },
+      null, '/', '/?lng=fr', {}, 'en', 'query | returns fallbackLng (en)')
+
+    testParser(t, 'path', { order: ['path'], supportedLngs: ['en', 'de'] },
+      null, '/prefix/:lng', '/prefix/fr', {}, 'en',
+      'path | returns fallbackLng (en)')
+
+    testParser(t, 'cookie', { order: ['cookie'], supportedLngs: ['en', 'de'] },
+      'fr', '/', '/', {}, 'en', 'cookie | returns fallbackLng (en)')
+
+    testParser(t, 'session',
+      { order: ['session'], supportedLngs: ['en', 'de'] }, 'fr', '/', '/', {},
+      'en', 'session | returns fallbackLng (en)')
+
+    testParser(t, 'header', { order: ['header'], supportedLngs: ['de', 'en'] },
+      null, '/', '/', { 'accept-language': 'fr;q=0.9' },
+      'en', 'header | returns fallbackLng (en)')
+  })
+
+  t.test('Header | with supported check | without request header', t => {
+    t.plan(4)
+
+    testParser(t, 'header', { order: ['header'], supportedLngs: ['de', 'en'] },
+      null, '/', '/', {}, 'en', 'returns fallbackLng (en)')
+  })
+
+  t.test('With custom decorator and key options', t => {
+    t.plan(PARSER_SUBTEST_COUNT)
+
+    testParser(t, 'query', {
+      order: ['query'], queryDecorator: 'foo', queryKey: 'bar'
+    }, 'de', '/', '/?bar=de', {}, 'de', 'query | returns param (de)')
+
+    testParser(t, 'path', {
+      order: ['path'], pathDecorator: 'foo', pathKey: 'bar'
+    }, 'de', '/prefix/:bar', '/prefix/de', {}, 'de',
+    'path | returns param (de)')
+
+    testParser(t, 'cookie', {
+      order: ['cookie'], cookieDecorator: 'foo', cookieKey: 'bar'
+    }, 'de', '/', '/', {}, 'de', 'cookie | returns param (de)')
+
+    testParser(t, 'session', {
+      order: ['session'], sessionDecorator: 'foo', sessionKey: 'bar'
+    }, 'de', '/', '/', {}, 'de', 'session | returns param (de)')
+
+    testParser(t, 'header', {
+      order: ['header'], headerDecorator: 'foo', headerKey: 'bar'
+    }, 'de;q=0.9,en;q=0.8', '/', '/', {},
+    JSON.stringify([{'code': 'de', 'script': null, 'quality': 0.9}, {'code': 'en', 'script': null, 'quality': 0.8}]),
+    'header | returns array of matched items')
+  })
+
+  t.test('Order (the last one wins)', t => {
+    t.plan(PARSER_SUBTEST_COUNT)
+
+    testParserOrder(t, {
+      order: ['session', 'cookie', 'header', 'path', 'query']
+    }, '/prefix/it?lng=gr', 'gr', 'last one is query')
+
+    testParserOrder(t, {
+      order: ['session', 'cookie', 'header', 'query', 'path']
+    }, '/prefix/it?lng=gr', 'it', 'last one is path')
+
+    testParserOrder(t, {
+      order: ['session', 'header', 'query', 'path', 'cookie']
+    }, '/prefix/it?lng=gr', 'de', 'last one is cookie')
+
+    testParserOrder(t, {
+      order: ['header', 'query', 'path', 'cookie', 'session']
+    }, '/prefix/it?lng=gr', 'fr', 'last one is session')
+
+    testParserOrder(t, {
+      order: ['query', 'path', 'cookie', 'session', 'header']
+    }, '/prefix/it?lng=gr', JSON.stringify([{'code': 'pt', 'script': null, 'quality': 0.9}, {'code': 'sp', 'script': null, 'quality': 0.8}]),
+    'last one is header')
+  })
 })
 
 function testRegisterError (t, opts, check, msg) {
@@ -219,19 +215,58 @@ function testRegisterError (t, opts, check, msg) {
     })
 }
 
-function testParser (t, handler, req, ctx, check, msg) {
-  handler(req, {}, function () {
-    t.equal(req.detectedLng, check, `${ctx} | ${msg}`)
-  })
+function testParser (t, name, opts, ctx, route, url, headers, check, msg) {
+  const fastify = Fastify()
+  t.tearDown(() => fastify.close.bind(fastify))
+
+  const decorator =
+    opts[`${name}Decorator`] || defaultOptions[`${name}Decorator`]
+  const key =
+    opts[`${name}Key`] || defaultOptions[`${name}Key`]
+
+  if (!fastify.hasRequestDecorator(decorator)) {
+    fastify
+      .decorateRequest(decorator, { [key]: ctx })
+  }
+
+  fastify
+    .register(plugin, opts)
+    .get(route, (req, res) => res.send(req.detectedLng))
+    .ready(err => {
+      t.error(err)
+
+      fastify.inject({
+        url,
+        method: 'GET',
+        headers
+      }, (err, res) => {
+        t.error(err)
+        t.equal(res.statusCode, 200)
+        t.equal(res.payload, check, msg)
+      })
+    })
 }
 
-function testRoute (t, instance, url, headers, check, msg) {
-  instance.inject({
-    method: 'GET',
-    url,
-    headers
-  }, (err, res) => {
-    t.error(err)
-    t.ok(~res.payload.indexOf(check), msg)
-  })
+function testParserOrder (t, opts, url, check, msg) {
+  const fastify = Fastify()
+  t.tearDown(() => fastify.close.bind(fastify))
+
+  fastify
+    .decorateRequest('cookies', { fastifyLanguageParser: 'de' })
+    .decorateRequest('session', { fastifyLanguageParser: 'fr' })
+    .register(plugin, opts)
+    .get('/prefix/:lng', (req, res) => res.send(req.detectedLng))
+    .ready(err => {
+      t.error(err)
+
+      fastify.inject({
+        url,
+        method: 'GET',
+        headers: { 'accept-language': 'pt;q=0.9,sp;q=0.8' }
+      }, (err, res) => {
+        t.error(err)
+        t.equal(res.statusCode, 200)
+        t.equal(res.payload, check, msg)
+      })
+    })
 }

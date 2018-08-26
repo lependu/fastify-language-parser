@@ -1,24 +1,7 @@
 'use strict'
 
 const fp = require('fastify-plugin')
-
-const defaultOptions = {
-  cookieDecorator: 'cookies',
-  cookieKey: 'fastifyLanguageParser',
-  order: [],
-  headerDecorator: 'headers',
-  headerKey: 'accept-language',
-  fallbackLng: 'en',
-  pathDecorator: 'params',
-  pathKey: 'lng',
-  queryDecorator: 'query',
-  queryKey: 'lng',
-  sessionDecorator: 'session',
-  sessionKey: 'fastifyLanguageParser',
-  supportedLngs: []
-}
-
-const supportedParsers = ['cookie', 'header', 'path', 'query', 'session']
+const { defaultOptions, supportedParsers } = require('./default-options')
 
 const fastifyLP = (fastify, opts, next) => {
   const options = Object.assign({}, defaultOptions, opts)
@@ -31,13 +14,11 @@ const fastifyLP = (fastify, opts, next) => {
     return next(new Error(`options.order has to be an array`))
   }
 
-  parsers.map(name => {
-    const parserOptions = Object.assign({}, {
-      decorator: options[`${name}Decorator`],
-      key: options[`${name}Key`],
-      supportedLngs: options.supportedLngs
-    })
+  if (!parsers.length) {
+    return next(new Error(`options.order has to contain at least one parser.`))
+  }
 
+  parsers.map(name => {
     if (supportedParsers.indexOf(name) === -1) {
       return next(new Error(`${name} is not a valid language parser`))
     }
@@ -48,7 +29,7 @@ const fastifyLP = (fastify, opts, next) => {
 
     fastify.addHook(
       'preHandler',
-      require('./parsers')(name, parserOptions)
+      require('./parser')(name, options)
     )
   })
 
