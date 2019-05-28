@@ -29,10 +29,15 @@
   "devDependencies": {
     "fastify": "next",
     "standard": "^12.0.0",
-    "tap": "^13.0.0"
+    "tap": "^12.7.0"
   },
   "dependencies": {
     "accept-language-parser": "^1.5.0",
     "fastify-plugin": "^1.4.0"
+  },
+  "greenkeeper": {
+    "ignore": [
+      "tap"
+    ]
   }
 }
