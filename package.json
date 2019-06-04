@@ -1,6 +1,6 @@
 {
   "name": "fastify-language-parser",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Language parser plugin for fastify",
   "main": "plugin.js",
   "engines": {
