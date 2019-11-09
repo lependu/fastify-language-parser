@@ -61,12 +61,14 @@ name | type | default | description
 Under the hood it uses [accept-language-parser](https://github.com/opentable/accept-language-parser). If `supportedLngs` does not contain any item it uses the [parse](https://github.com/opentable/accept-language-parser#parserparseacceptlanguageheader), otherwise the [pick](https://github.com/opentable/accept-language-parser) method. Latter is the only case when the order in `supportedLngs` array makes any difference, because parser will pass it to the pick method. If the pick method returns no value than the `detectedLng` decorator will not change. It parses `req.headers['accept-language']` value which provided by fastify and normally you don't need to change, but you can using the `headerDecorator` and `headerKey` options.
 
 #### query & path parsers
-Parses specified keys from `req.query` and `req.params` decorators which provided by fastify, so you don't need to change them, but you can using the `pathDecorator` and `queryDecorator` options.
+Parses specified keys from `req.query` and `req.params` decorators which provided by Fastify's core [Request](https://www.fastify.io/docs/latest/Request/) object. Ususally you don't need to change them, but you can using the `pathDecorator` and `queryDecorator` options.
 
 name | type | default | description
 -----|------|---------|------------
-**`pathParam`** | `{String}` | `'lng'` | Parses the value of<br /> `req.params[pathParam]`.
-**`queryString`** | `{String}` | `'lng'` | Parses the value of<br /> `req.query[queryString]`.
+**`pathDecorator`** | `{String}` | `'params'` | The object key which contains the params matching the URL.
+**`pathKey`** | `{String}` | `lng` | The object key which contains the actual language within the `req[pathDecorator]` object.
+**`queryDecorator`** | `{String}` | `'query'` | The object key which contains the parsed querystring.
+**`queryKey`** | `{String}` | `lng` | The object key which contains the actual language within the querystring.
 
 #### cookie & session parsers
 If you intend to use these parsers you need to register [fastify-cookie](https://github.com/fastify/fastify-cookie) or [fastify-session](https://github.com/SerayaEryn/fastify-session) plugin respectively. This plugin does not retrieves or sets any cookie or session value but looks for the `req[decorator][key]` value specified in options. The fastify-cookie plugin provides `req.cookies` decorator by defult. If you use fastify-session plugin you need to set the `req[sessionDecorator][sessionKey]` before this plugin, which reflects your session store state changes and provides the language code value.
