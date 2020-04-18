@@ -4,7 +4,7 @@
   "description": "Language parser plugin for fastify",
   "main": "plugin.js",
   "engines": {
-    "node": ">=6"
+    "node": ">=10"
   },
   "scripts": {
     "lint": "standard --fix",
