@@ -24,8 +24,9 @@ The plugin supports the following `Fastify` versions. Please refer to the corres
 
 Version | Branch | Fastify | End of Support
 --------|--------|---------|---------------  
-1.x | [1.x](https://github.com/lependu/fastify-language-parser/tree/1.x) | [1.x](https://github.com/fastify/fastify/tree/1.x) | 2019-09-01
-2.x | [master](https://github.com/lependu/fastify-language-parser/tree/master) | [2.x](https://github.com/fastify/fastify/tree/master) | TBD  
+1.x | [1.x](https://github.com/lependu/fastify-language-parser/tree/1.x) | [1.x](https://github.com/fastify/fastify/tree/1.x) | EOL
+2.x | [2.x](https://github.com/lependu/fastify-language-parser/tree/2.x) | [2.x](https://github.com/fastify/fastify/tree/2.x) | TBD  
+3.x | [master](https://github.com/lependu/fastify-language-parser/tree/master) | [3.x](https://github.com/fastify/fastify/tree/master) | TBD  
   
 ## Example
 ```js
