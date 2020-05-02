@@ -4,7 +4,7 @@
   "description": "Language parser plugin for fastify",
   "main": "plugin.js",
   "engines": {
-    "node": ">=6"
+    "node": ">=10"
   },
   "scripts": {
     "lint": "standard --fix",
@@ -29,15 +29,10 @@
   "devDependencies": {
     "fastify": "^2.4.1",
     "standard": "^14.0.0",
-    "tap": "^12.7.0"
+    "tap": "^14.10.7"
   },
   "dependencies": {
     "accept-language-parser": "^1.5.0",
-    "fastify-plugin": "^1.6.0"
-  },
-  "greenkeeper": {
-    "ignore": [
-      "tap"
-    ]
+    "fastify-plugin": "^1.6.1"
   }
 }

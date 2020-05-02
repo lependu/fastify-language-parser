@@ -1,13 +1,13 @@
 'use strict'
 
-const { test } = require('tap')
+const t = require('tap')
 const Fastify = require('fastify')
 const plugin = require('./plugin')
 const { defaultOptions } = require('./default-options')
 
 const PARSER_SUBTEST_COUNT = 4 * 5
 
-test('Decorates request with detectedLng', t => {
+t.test('Decorates request with detectedLng', t => {
   t.plan(2)
   const fastify = Fastify()
 
@@ -20,7 +20,7 @@ test('Decorates request with detectedLng', t => {
   fastify.close()
 })
 
-test('Register errors', t => {
+t.test('Register errors', t => {
   t.plan(8)
 
   testRegisterError(t, { order: 'not-array' },
@@ -40,7 +40,7 @@ test('Register errors', t => {
     'throws if order option contains the same parser multiple times')
 })
 
-test('Parser', t => {
+t.test('Parser', t => {
   t.plan(7)
 
   t.test('Default options | no supported check | no param', t => {
@@ -79,7 +79,7 @@ test('Parser', t => {
 
     testParser(t, 'header', { order: ['header'] }, null, '/', '/',
       { 'accept-language': 'de;q=0.9,fr;q=0.8' },
-      JSON.stringify([{ 'code': 'de', 'script': null, 'quality': 0.9 }, { 'code': 'fr', 'script': null, 'quality': 0.8 }]),
+      JSON.stringify([{ code: 'de', script: null, quality: 0.9 }, { code: 'fr', script: null, quality: 0.8 }]),
       'header | returns array of matched items sorted by q')
   })
 
@@ -156,7 +156,7 @@ test('Parser', t => {
     testParser(t, 'header', {
       order: ['header'], headerDecorator: 'foo', headerKey: 'bar'
     }, 'de;q=0.9,en;q=0.8', '/', '/', {},
-    JSON.stringify([{ 'code': 'de', 'script': null, 'quality': 0.9 }, { 'code': 'en', 'script': null, 'quality': 0.8 }]),
+    JSON.stringify([{ code: 'de', script: null, quality: 0.9 }, { code: 'en', script: null, quality: 0.8 }]),
     'header | returns array of matched items')
   })
 
@@ -181,14 +181,14 @@ test('Parser', t => {
 
     testParserOrder(t, {
       order: ['query', 'path', 'cookie', 'session', 'header']
-    }, '/prefix/it?lng=gr', JSON.stringify([{ 'code': 'pt', 'script': null, 'quality': 0.9 }, { 'code': 'sp', 'script': null, 'quality': 0.8 }]),
+    }, '/prefix/it?lng=gr', JSON.stringify([{ code: 'pt', script: null, quality: 0.9 }, { code: 'sp', script: null, quality: 0.8 }]),
     'last one is header')
   })
 })
 
 function testRegisterError (t, opts, check, msg) {
   const fastify = Fastify()
-  t.tearDown(() => fastify.close.bind(fastify))
+  t.tearDown(() => fastify.close())
 
   fastify
     .register(plugin, opts)
@@ -200,7 +200,7 @@ function testRegisterError (t, opts, check, msg) {
 
 function testParser (t, name, opts, ctx, route, url, headers, check, msg) {
   const fastify = Fastify()
-  t.tearDown(() => fastify.close.bind(fastify))
+  t.tearDown(() => fastify.close())
 
   const decorator =
     opts[`${name}Decorator`] || defaultOptions[`${name}Decorator`]
@@ -212,44 +212,42 @@ function testParser (t, name, opts, ctx, route, url, headers, check, msg) {
       .decorateRequest(decorator, { [key]: ctx })
   }
 
-  fastify
-    .register(plugin, opts)
-    .get(route, (req, res) => res.send(req.detectedLng))
-    .ready(err => {
-      t.error(err)
+  fastify.register(plugin, opts)
+  fastify.get(route, (req, res) => res.send(req.detectedLng))
+  fastify.ready(err => {
+    t.error(err)
 
-      fastify.inject({
-        url,
-        method: 'GET',
-        headers
-      }, (err, res) => {
-        t.error(err)
-        t.equal(res.statusCode, 200)
-        t.equal(res.payload, check, msg)
-      })
+    fastify.inject({
+      url,
+      method: 'GET',
+      headers
+    }, (err, res) => {
+      t.error(err)
+      t.equal(res.statusCode, 200)
+      t.equal(res.payload, check, msg)
     })
+  })
 }
 
 function testParserOrder (t, opts, url, check, msg) {
   const fastify = Fastify()
-  t.tearDown(() => fastify.close.bind(fastify))
+  t.tearDown(() => fastify.close())
 
-  fastify
-    .decorateRequest('cookies', { fastifyLanguageParser: 'de' })
-    .decorateRequest('session', { fastifyLanguageParser: 'fr' })
-    .register(plugin, opts)
-    .get('/prefix/:lng', (req, res) => res.send(req.detectedLng))
-    .ready(err => {
+  fastify.decorateRequest('cookies', { fastifyLanguageParser: 'de' })
+  fastify.decorateRequest('session', { fastifyLanguageParser: 'fr' })
+  fastify.register(plugin, opts)
+  fastify.get('/prefix/:lng', (req, res) => res.send(req.detectedLng))
+  fastify.ready(err => {
+    t.error(err)
+
+    fastify.inject({
+      url,
+      method: 'GET',
+      headers: { 'accept-language': 'pt;q=0.9,sp;q=0.8' }
+    }, (err, res) => {
       t.error(err)
-
-      fastify.inject({
-        url,
-        method: 'GET',
-        headers: { 'accept-language': 'pt;q=0.9,sp;q=0.8' }
-      }, (err, res) => {
-        t.error(err)
-        t.equal(res.statusCode, 200)
-        t.equal(res.payload, check, msg)
-      })
+      t.equal(res.statusCode, 200)
+      t.equal(res.payload, check, msg)
     })
+  })
 }

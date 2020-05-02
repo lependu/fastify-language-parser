@@ -11,11 +11,11 @@ const fastifyLP = (fastify, opts, next) => {
   const parsers = options.order
 
   if (!Array.isArray(parsers)) {
-    return next(new Error(`options.order has to be an array`))
+    return next(new Error('options.order has to be an array'))
   }
 
   if (!parsers.length) {
-    return next(new Error(`options.order has to contain at least one parser.`))
+    return next(new Error('options.order has to contain at least one parser.'))
   }
 
   parsers.map(name => {

@@ -53,7 +53,7 @@ function headerParser (decorator, key) {
 function headerParserWithSupportedCheck (decorator, key, supportedLngs) {
   return function (req, res, next) {
     if (req[decorator] && req[decorator][key]) {
-      let found = require('accept-language-parser').pick(
+      const found = require('accept-language-parser').pick(
         supportedLngs,
         req[decorator][key]
       )
