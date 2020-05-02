@@ -37,6 +37,6 @@ const fastifyLP = (fastify, opts, next) => {
 }
 
 module.exports = fp(fastifyLP, {
-  fastify: '>=2.0.0',
+  fastify: '>=3.0.0',
   name: 'fastify-language-parser'
 })
