@@ -2,7 +2,6 @@
 
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/)
 [![Build Status](https://travis-ci.org/lependu/fastify-language-parser.svg?branch=master)](https://travis-ci.org/lependu/fastify-language-parser)
-[![Greenkeeper badge](https://badges.greenkeeper.io/lependu/fastify-language-parser.svg)](https://greenkeeper.io/)
 [![Known Vulnerabilities](https://snyk.io/test/github/lependu/fastify-language-parser/badge.svg)](https://snyk.io/test/github/lependu/fastify-language-parser)
 [![Coverage Status](https://coveralls.io/repos/github/lependu/fastify-language-parser/badge.svg?branch=master)](https://coveralls.io/github/lependu/fastify-language-parser?branch=master)
 ![npm](https://img.shields.io/npm/v/fastify-language-parser.svg)
