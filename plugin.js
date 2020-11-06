@@ -27,7 +27,7 @@ const fastifyLP = (fastify, opts, next) => {
       return next(new Error(`${name} parser found  multiple times in order option. Try scope your routes instead.`))
     }
 
-    fastify.addHook(
+    return fastify.addHook(
       'preHandler',
       require('./parser')(name, options)
     )
